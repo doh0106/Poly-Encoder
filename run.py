@@ -148,7 +148,7 @@ if __name__ == '__main__':
     ConfigClass, TokenizerClass, BertModelClass = MODEL_CLASSES[args.model_type]
 
     ## init dataset and bert model
-    tokenizer = TokenizerClass.from_pretrained(os.path.join(args.bert_model, "vocab.txt"), do_lower_case=True, clean_text=False)
+    tokenizer = TokenizerClass.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
     context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=args.max_contexts_length)
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
     concat_transform = SelectionConcatTransform(tokenizer=tokenizer, max_len=args.max_response_length+args.max_contexts_length)
@@ -210,8 +210,12 @@ if __name__ == '__main__':
     else:
         raise Exception('Unknown architecture.')
     model.resize_token_embeddings(len(tokenizer)) 
+    # device = 'cuda'
+    print(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     model.to(device)
-    
+    print('모델 투 디바이스 ', device)
     if args.eval:
         print('Loading parameters from', state_save_path)
         model.load_state_dict(torch.load(state_save_path))
@@ -249,8 +253,12 @@ if __name__ == '__main__':
         nb_tr_steps = 0
         with tqdm(total=len(train_dataloader)//args.gradient_accumulation_steps) as bar:
             for step, batch in enumerate(train_dataloader):
+                print('훈련 시작')
                 model.train()
+                print('훈련 끝')
+
                 optimizer.zero_grad()
+                
                 batch = tuple(t.to(device) for t in batch)
                 if args.architecture == 'cross':
                     text_token_ids_list_batch, text_input_masks_list_batch, text_segment_ids_list_batch, labels_batch = batch
@@ -263,6 +271,7 @@ if __name__ == '__main__':
                                           labels_batch)
 
                 loss = loss / args.gradient_accumulation_steps
+                print('로스', loss)
                 
                 if args.fp16:
                     with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -271,6 +280,7 @@ if __name__ == '__main__':
                     loss.backward()
                 
                 tr_loss += loss.item()
+                print('역전파 시작')
 
                 if (step + 1) % args.gradient_accumulation_steps == 0:
                     if args.fp16:
@@ -303,6 +313,7 @@ if __name__ == '__main__':
                             log_wf.write('[Saving at] %s\n' % state_save_path)
                             torch.save(model.state_dict(), state_save_path)
                 log_wf.flush()
+                print('역전파 끝')
 
         # add a eval step after each epoch
         val_result = eval_running_model(val_dataloader)
