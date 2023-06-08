@@ -149,8 +149,11 @@ if __name__ == '__main__':
 
     ## init dataset and bert model
     tokenizer = TokenizerClass.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
+
     context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=args.max_contexts_length)
+    
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
+    
     concat_transform = SelectionConcatTransform(tokenizer=tokenizer, max_len=args.max_response_length+args.max_contexts_length)
 
     print('=' * 80)
@@ -209,6 +212,7 @@ if __name__ == '__main__':
         model = CrossEncoder(bert_config, bert=bert)
     else:
         raise Exception('Unknown architecture.')
+
     model.resize_token_embeddings(len(tokenizer)) 
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -264,7 +268,7 @@ if __name__ == '__main__':
                     loss = model(context_token_ids_list_batch, context_input_masks_list_batch,
                                           response_token_ids_list_batch, response_input_masks_list_batch,
                                           labels_batch)
-
+                
                 loss = loss / args.gradient_accumulation_steps
                 
                 if args.fp16:
@@ -305,6 +309,7 @@ if __name__ == '__main__':
                             print('[Saving at]', state_save_path)
                             log_wf.write('[Saving at] %s\n' % state_save_path)
                             torch.save(model.state_dict(), state_save_path)
+                            torch.save(model, os.path.join(args.output_dir, 'pytorch_model.pth'))
                 log_wf.flush()
 
         # add a eval step after each epoch
@@ -320,5 +325,6 @@ if __name__ == '__main__':
             print('[Saving at]', state_save_path)
             log_wf.write('[Saving at] %s\n' % state_save_path)
             torch.save(model.state_dict(), state_save_path)
+            torch.save(model, os.path.join(args.output_dir, 'pytorch_model.pth'))
         print(global_step, tr_loss / nb_tr_steps)
         log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))

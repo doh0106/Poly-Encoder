@@ -8,6 +8,7 @@ import argparse
 import pandas as pd 
 import os 
 import pickle
+import glob
 
 from tqdm import tqdm
 
@@ -26,7 +27,6 @@ class OneSentenceDataset(Dataset):
     def __getitem__(self, index):
         response = self.data_source[index]
         responses_token_ids_list, responses_input_masks_list = self.response_transform(response)  # [token_ids],[seg_ids],[masks]
-        # responses_token_ids_list, responses_input_masks_list = [responses_token_ids_list], [responses_input_masks_list]
         long_tensors = [responses_token_ids_list, responses_input_masks_list]
         responses_token_ids_list, responses_input_masks_list = (torch.tensor(t, dtype=torch.long, device=device) for t in long_tensors)
         return responses_token_ids_list, responses_input_masks_list
@@ -44,13 +44,16 @@ if __name__ == '__main__':
     print(args)
 
     bert_config = BertConfig.from_json_file(os.path.join(args.bert_model, 'config.json'))
-
-    previous_model_file = os.path.join(args.bert_model, "pytorch_model.bin")
+    model_file_name = glob.glob1(args.bert_model, '*bin')[0]
+    if model_file_name != 'pytorch_model.bin': 
+        os.rename(os.path.join(args.bert_model, model_file_name), os.path.join(args.bert_model, 'pytorch_model.bin'))
+    previous_model_file = os.path.join(args.bert_model, 'pytorch_model.bin')
     print('Loading parameters from', previous_model_file)
     model_state_dict = torch.load(previous_model_file, map_location="cpu")
-    bert = BertModel.from_pretrained(args.bert_model, state_dict=model_state_dict)
+    bert = BertModel(bert_config)
 
     model = PolyEncoder(bert_config, bert=bert, poly_m=16)
+    # model = torch.load(os.path.join(args.bert_model, 'pytorch_model.pth'))
 
     tokenizer = BertTokenizerFast.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
