@@ -4,41 +4,61 @@ from tqdm import tqdm
 import os
 import random
 import pickle
+import pandas as pd
 
+def make_data_set(file_path, num):
+    with open(file_path, 'rb') as fr:
+        df = pickle.load(fr)
+
+    data_source = []
+
+    for idx in tqdm(range(df.shape[0])):
+        dict_data_source = {
+            'context':[],
+            'responses':[],
+            'labels': [1] + [0] * num
+        }
+
+        list_talk = list(df.iloc[idx])
+        no_nan = [i for i in list_talk if pd.isnull(i) == False]
+        id = no_nan[0]
+        talk = no_nan[1:-1]
+        answer = no_nan[-1]
+
+        for i in range(len(talk)):
+            dict_data_source['context'].append(talk[i].strip())
+  
+        cond_id = (df['index']==id)
+
+        while True:
+            dict_data_source['responses'] = []
+            dict_data_source['responses'].append(answer.strip())
+
+            wrong_df = df.loc[~cond_id].sample(num)
+
+            for wrong_idx in range(num):
+                list_wrong = list(wrong_df.iloc[wrong_idx])
+                wrong_no_nan = [i for i in list_wrong if pd.isnull(i) == False]
+                wrong = wrong_no_nan[-1].strip()
+                dict_data_source['responses'].append(wrong.strip())
+            list_responses = dict_data_source['responses']
+
+            if len(list_responses) != len(set(list_responses)):
+                pass
+            else:                
+                break
+        data_source.append(dict_data_source)
+    return data_source
 
 class SelectionDataset(Dataset):
-    def __init__(self, file_path, context_transform, response_transform, concat_transform, sample_cnt=None, mode='poly'):
+    def __init__(self, file_path, context_transform, response_transform, concat_transform, mode='poly', num=15):
         self.context_transform = context_transform
         self.response_transform = response_transform
         self.concat_transform = concat_transform
-        self.data_source = []
         self.mode = mode
-        neg_responses = []
-        with open(file_path, encoding='utf-8') as f:
-            group = {
-                'context': None,
-                'responses': [],
-                'labels': []
-            }
-            for line in f:
-                split = line.strip('\n').split('\t')
-                lbl, context, response = int(split[0]), split[1:-1], split[-1]
-                if lbl == 1 and len(group['responses']) > 0:
-                    self.data_source.append(group)
-                    group = {
-                        'context': None,
-                        'responses': [],
-                        'labels': []
-                    }
-                    if sample_cnt is not None and len(self.data_source) >= sample_cnt:
-                        break
-                else:
-                        neg_responses.append(response)
-                group['responses'].append(response)
-                group['labels'].append(lbl)
-                group['context'] = context
-            if len(group['responses']) > 0:
-                self.data_source.append(group)
+        self.num=num
+        self.data_source = make_data_set(file_path, self.num)
+        
     def __len__(self):
         return len(self.data_source)
 
@@ -51,7 +71,6 @@ class SelectionDataset(Dataset):
         else:
             transformed_context = self.context_transform(context)  # [token_ids],[seg_ids],[masks]
             transformed_responses = self.response_transform(responses)  # [token_ids],[seg_ids],[masks]
-
             ret = transformed_context, transformed_responses, labels
 
         return ret

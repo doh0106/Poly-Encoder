@@ -4,7 +4,7 @@ import json
 import shutil
 import argparse
 import numpy as np
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import random
 import torch
 import torch.nn as nn
@@ -12,7 +12,9 @@ import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+import wandb
 
+from transformers import RobertaTokenizerFast, RobertaModel, RobertaConfig
 from transformers import BertModel, BertConfig, BertTokenizer, BertTokenizerFast
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
@@ -100,7 +102,10 @@ if __name__ == '__main__':
     parser.add_argument("--eval", action="store_true")
     parser.add_argument("--model_type", default='bert', type=str)
     parser.add_argument("--output_dir", required=True, type=str)
-    parser.add_argument("--train_dir", default='data/ubuntu_data', type=str)
+    parser.add_argument("--train_dir", default='data/dir', type=str)
+    parser.add_argument("--train_file", default='train.pickle', type=str)
+    parser.add_argument("--valid_file", default='valid.pickle', type=str)
+    parser.add_argument("--test_file", default='test.pickle', type=str)
 
     parser.add_argument("--use_pretrain", action="store_true")
     parser.add_argument("--architecture", required=True, type=str, help='[poly, bi, cross]')
@@ -141,9 +146,11 @@ if __name__ == '__main__':
     print(args)
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
     set_seed(args)
+    wandb.login()
 
     MODEL_CLASSES = {
         'bert': (BertConfig, BertTokenizerFast, BertModel),
+        'roberta' : (RobertaConfig, RobertaTokenizerFast, RobertaModel)
     }
     ConfigClass, TokenizerClass, BertModelClass = MODEL_CLASSES[args.model_type]
 
@@ -162,37 +169,44 @@ if __name__ == '__main__':
     print('=' * 80)
 
     if not args.eval:
-        train_dataset = SelectionDataset(os.path.join(args.train_dir, 'train.txt'),
-                                                                      context_transform, response_transform, concat_transform, sample_cnt=None, mode=args.architecture)
-        val_dataset = SelectionDataset(os.path.join(args.train_dir, 'dev.txt'),
-                                                                  context_transform, response_transform, concat_transform, sample_cnt=1000, mode=args.architecture)
+        train_dataset = SelectionDataset(os.path.join(args.train_dir, args.train_file),
+                        context_transform, response_transform, concat_transform,mode=args.architecture)
+        val_dataset = SelectionDataset(os.path.join(args.train_dir, args.valid_file),
+                        context_transform, response_transform, concat_transform,mode=args.architecture)
         train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size, collate_fn=train_dataset.batchify_join_str, shuffle=True, num_workers=0)
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
     else: # test
-        val_dataset = SelectionDataset(os.path.join(args.train_dir, 'test.txt'),
-                                                                  context_transform, response_transform, concat_transform, sample_cnt=None, mode=args.architecture)
+        val_dataset = SelectionDataset(os.path.join(args.train_dir, args.test_file),
+                        context_transform, response_transform, concat_transform, mode=args.architecture)
 
     val_dataloader = DataLoader(val_dataset, batch_size=args.eval_batch_size, collate_fn=val_dataset.batchify_join_str, shuffle=False, num_workers=0)
 
 
     epoch_start = 1
     global_step = 0
+    best_train_loss = float('inf')
     best_eval_loss = float('inf')
     best_test_loss = float('inf')
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    shutil.copyfile(os.path.join(args.bert_model, 'vocab.txt'), os.path.join(args.output_dir, 'vocab.txt'))
+    if args.model_type == 'bert':
+        shutil.copyfile(os.path.join(args.bert_model, 'vocab.txt'), os.path.join(args.output_dir, 'vocab.txt'))
+    elif args.model_type == 'roberta': 
+        shutil.copyfile(os.path.join(args.bert_model, 'tokenizer.json'), os.path.join(args.output_dir, 'tokenizer.json'))
     shutil.copyfile(os.path.join(args.bert_model, 'config.json'), os.path.join(args.output_dir, 'config.json'))
     log_wf = open(os.path.join(args.output_dir, 'log.txt'), 'a', encoding='utf-8')
     print (args, file=log_wf)
 
     state_save_path = os.path.join(args.output_dir, '{}_{}_pytorch_model.bin'.format(args.architecture, args.poly_m))
+    state_save_path_train = os.path.join(args.output_dir, '{}_{}_pytorch_model_train.bin'.format(args.architecture, args.poly_m))
+    state_save_path_last = os.path.join(args.output_dir, '{}_{}_pytorch_model_last.bin'.format(args.architecture, args.poly_m))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     ########################################
     ## build BERT encoder
     ########################################
+    
     bert_config = ConfigClass.from_json_file(os.path.join(args.bert_model, 'config.json'))
     if args.use_pretrain and not args.eval:
         previous_model_file = os.path.join(args.bert_model, "pytorch_model.bin")
@@ -218,6 +232,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     print('모델 투 디바이스 ', device)
+    
     if args.eval:
         print('Loading parameters from', state_save_path)
         model.load_state_dict(torch.load(state_save_path))
@@ -250,10 +265,11 @@ if __name__ == '__main__':
     eval_freq = eval_freq//args.gradient_accumulation_steps
     print('Print freq:', print_freq, "Eval freq:", eval_freq)
 
-    for epoch in range(epoch_start, int(args.num_train_epochs) + 1):
+    for epoch in tqdm(range(epoch_start, int(args.num_train_epochs) + 1)):
         tr_loss = 0
         nb_tr_steps = 0
         with tqdm(total=len(train_dataloader)//args.gradient_accumulation_steps) as bar:
+
             for step, batch in enumerate(train_dataloader):
                 model.train()
                 optimizer.zero_grad()
@@ -266,8 +282,8 @@ if __name__ == '__main__':
                     context_token_ids_list_batch, context_input_masks_list_batch, \
                     response_token_ids_list_batch, response_input_masks_list_batch, labels_batch = batch
                     loss = model(context_token_ids_list_batch, context_input_masks_list_batch,
-                                          response_token_ids_list_batch, response_input_masks_list_batch,
-                                          labels_batch)
+                                            response_token_ids_list_batch, response_input_masks_list_batch,
+                                            labels_batch)
                 
                 loss = loss / args.gradient_accumulation_steps
                 
@@ -309,9 +325,13 @@ if __name__ == '__main__':
                             print('[Saving at]', state_save_path)
                             log_wf.write('[Saving at] %s\n' % state_save_path)
                             torch.save(model.state_dict(), state_save_path)
-                            torch.save(model, os.path.join(args.output_dir, 'pytorch_model.pth'))
                 log_wf.flush()
-
+                
+        if tr_loss < best_train_loss: 
+            best_trsin_loss = tr_loss
+            print('[Saving at]', state_save_path_train)
+            log_wf.write('[Saving at] %s\n' % state_save_path_train)
+            torch.save(model.state_dict(), state_save_path_train)
         # add a eval step after each epoch
         val_result = eval_running_model(val_dataloader)
         print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
@@ -325,6 +345,9 @@ if __name__ == '__main__':
             print('[Saving at]', state_save_path)
             log_wf.write('[Saving at] %s\n' % state_save_path)
             torch.save(model.state_dict(), state_save_path)
-            torch.save(model, os.path.join(args.output_dir, 'pytorch_model.pth'))
-        print(global_step, tr_loss / nb_tr_steps)
-        log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))
+        wandb.log({'tr_loss' : tr_loss, 'val_loss' : val_result['eval_loss'],
+                'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
+                'MRR' : val_result['MRR']})
+        # print(global_step, tr_loss / nb_tr_steps)
+        torch.save(model.state_dict(), state_save_path_last)
+        # log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))

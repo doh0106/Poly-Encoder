@@ -24,13 +24,13 @@ class SelectionJoinTransform(object):
 
         self.cls_id = self.tokenizer.convert_tokens_to_ids('[CLS]')
         self.sep_id = self.tokenizer.convert_tokens_to_ids('[SEP]')
-        # self.tokenizer.add_tokens(['\n'], special_tokens=True)
+        self.tokenizer.add_tokens(['\n'], special_tokens=True)
         self.pad_id = 0
 
     def __call__(self, texts):
         # another option is to use [SEP], but here we follow the discussion at:
         # https://github.com/facebookresearch/ParlAI/issues/2306#issuecomment-599180186
-        context = ''.join(texts)
+        context = '\n'.join(texts)
         tokenized_dict = self.tokenizer.encode_plus(context)
         input_ids, input_masks = tokenized_dict['input_ids'], tokenized_dict['attention_mask']
         input_ids = input_ids[-self.max_len:]
@@ -53,7 +53,7 @@ class SelectionConcatTransform(object):
         self.max_len = max_len
         self.cls_id = self.tokenizer.convert_tokens_to_ids('[CLS]')
         self.sep_id = self.tokenizer.convert_tokens_to_ids('[SEP]')
-        # self.tokenizer.add_tokens(['\n'], special_tokens=True)
+        self.tokenizer.add_tokens(['\n'], special_tokens=True)
         self.pad_id = 0
 
     def __call__(self, context, responses):
