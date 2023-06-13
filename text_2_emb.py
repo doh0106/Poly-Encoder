@@ -1,4 +1,3 @@
-from transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
 from transformers import BertModel, BertConfig,  BertTokenizerFast
 from transformers import XLMRobertaTokenizerFast, RobertaModel, RobertaConfig
 
@@ -32,6 +31,19 @@ class OneSentenceDataset(Dataset):
         long_tensors = [responses_token_ids_list, responses_input_masks_list]
         responses_token_ids_list, responses_input_masks_list = (torch.tensor(t, dtype=torch.long, device=device) for t in long_tensors)
         return responses_token_ids_list, responses_input_masks_list
+class SelectionSequentialTransform(object):
+    def __init__(self, tokenizer, max_len):
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+
+    def __call__(self, text):
+        tokenized_dict = self.tokenizer.encode_plus(text, max_length=self.max_len, padding='max_length')
+        input_ids, input_masks = tokenized_dict['input_ids'], tokenized_dict['attention_mask']
+        assert len(input_ids) == self.max_len
+        assert len(input_masks) == self.max_len
+
+        return input_ids, input_masks
+
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
@@ -65,7 +77,6 @@ if __name__ == '__main__':
 
     tokenizer = TokenizerClass.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
-    context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=args.max_contexts_length)
     
     dataset = OneSentenceDataset(args.text_path, response_transform, mode='poly')
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
@@ -77,9 +88,11 @@ if __name__ == '__main__':
     model.eval()
     embeddings = []
     with torch.no_grad():
+        
         for ids, masks in tqdm(dataloader): 
-            ids = ids[:, 0, :].unsqueeze(1)
-            masks = masks[:, 0, :].unsqueeze(1)
+            ids = ids.unsqueeze(1)
+            masks = masks.unsqueeze(1)
+            print(ids.size())
             batch_size, res_cnt, seq_length = ids.shape
             ids = ids.view(-1, seq_length)
             masks = masks.view(-1, seq_length)
