@@ -1,5 +1,7 @@
-from transform import SelectionSequentialTransform 
+from transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
 from transformers import BertModel, BertConfig,  BertTokenizerFast
+from transformers import XLMRobertaTokenizerFast, RobertaModel, RobertaConfig
+
 from encoder import PolyEncoder 
 from tqdm import tqdm
 import torch
@@ -39,25 +41,32 @@ if __name__ == '__main__':
     parser.add_argument("--text_path", default='path/to/origianl_text.txt', type=str)  # 한 줄에 '몇 번 버스를 타시면 됩니다.\n' 이렇게 한문장 저장
     parser.add_argument("--max_response_length", default=128, type=int)
     parser.add_argument("--output_dir", default='path/to/preprocessed_emb.df', type=str)
+    parser.add_argument("--model_type", default='bert', type=str)
     parser.add_argument('--gpu', type=int, default=0)
     args = parser.parse_args()
     print(args)
 
-    bert_config = BertConfig.from_json_file(os.path.join(args.bert_model, 'config.json'))
-    model_file_name = glob.glob1(args.bert_model, '*bin')[0]
-    if model_file_name != 'pytorch_model.bin': 
-        os.rename(os.path.join(args.bert_model, model_file_name), os.path.join(args.bert_model, 'pytorch_model.bin'))
+    MODEL_CLASSES = {
+        'bert': (BertConfig, BertTokenizerFast, BertModel),
+        'roberta' : (RobertaConfig, XLMRobertaTokenizerFast, RobertaModel)
+    }
+    ConfigClass, TokenizerClass, BertModelClass = MODEL_CLASSES[args.model_type]
+
+
+    bert_config = ConfigClass.from_json_file(os.path.join(args.bert_model, 'config.json'))
+
     previous_model_file = os.path.join(args.bert_model, 'pytorch_model.bin')
     print('Loading parameters from', previous_model_file)
     model_state_dict = torch.load(previous_model_file, map_location="cpu")
-    bert = BertModel(bert_config)
-
+    # bert = BertModelClass(bert_config)
+    bert = BertModelClass.from_pretrained(args.bert_model, state_dict=model_state_dict)
     model = PolyEncoder(bert_config, bert=bert, poly_m=16)
     # model = torch.load(os.path.join(args.bert_model, 'pytorch_model.pth'))
 
-    tokenizer = BertTokenizerFast.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
+    tokenizer = TokenizerClass.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
-
+    context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=args.max_contexts_length)
+    
     dataset = OneSentenceDataset(args.text_path, response_transform, mode='poly')
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
@@ -65,7 +74,7 @@ if __name__ == '__main__':
 
     model.resize_token_embeddings(len(tokenizer)) 
     model.to(device)
-
+    model.eval()
     embeddings = []
     with torch.no_grad():
         for ids, masks in tqdm(dataloader): 
