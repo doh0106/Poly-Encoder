@@ -105,5 +105,5 @@ if __name__ == '__main__':
 
     emb_df = pd.DataFrame({'text':dataset.data_source, 'embedding' : embeddings})
     
-    with open(os.path.join(args.output_dir, 'cand_embs.pickle'), 'wb') as f: 
+    with open(args.output_dir, 'wb') as f: 
         pickle.dump(emb_df, f)
