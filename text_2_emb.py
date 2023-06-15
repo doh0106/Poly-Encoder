@@ -64,20 +64,23 @@ if __name__ == '__main__':
     }
     ConfigClass, TokenizerClass, BertModelClass = MODEL_CLASSES[args.model_type]
 
-
     bert_config = ConfigClass.from_json_file(os.path.join(args.bert_model, 'config.json'))
 
     previous_model_file = os.path.join(args.bert_model, 'pytorch_model.bin')
     print('Loading parameters from', previous_model_file)
+
     model_state_dict = torch.load(previous_model_file, map_location="cpu")
-    # bert = BertModelClass(bert_config)
-    bert = BertModelClass.from_pretrained(args.bert_model, state_dict=model_state_dict)
-    model = PolyEncoder(bert_config, bert=bert, poly_m=16)
-    # model = torch.load(os.path.join(args.bert_model, 'pytorch_model.pth'))
 
     tokenizer = TokenizerClass.from_pretrained(args.bert_model, do_lower_case=True, clean_text=False)
+    tokenizer.add_tokens(['\n'], special_tokens=True)
     response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=args.max_response_length)
     
+    bert = BertModelClass(bert_config)
+    bert.resize_token_embeddings(len(tokenizer))
+
+    model = PolyEncoder(bert_config, bert=bert, poly_m=16)
+    model.load_state_dict(model_state_dict)
+
     dataset = OneSentenceDataset(args.text_path, response_transform, mode='poly')
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
@@ -87,6 +90,7 @@ if __name__ == '__main__':
     model.to(device)
     model.eval()
     embeddings = []
+    
     with torch.no_grad():
         
         for ids, masks in tqdm(dataloader): 
