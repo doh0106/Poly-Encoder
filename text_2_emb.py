@@ -96,7 +96,6 @@ if __name__ == '__main__':
         for ids, masks in tqdm(dataloader): 
             ids = ids.unsqueeze(1)
             masks = masks.unsqueeze(1)
-            print(ids.size())
             batch_size, res_cnt, seq_length = ids.shape
             ids = ids.view(-1, seq_length)
             masks = masks.view(-1, seq_length)

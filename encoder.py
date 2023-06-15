@@ -5,60 +5,6 @@ import torch.nn.functional as F
 from transformers import BertPreTrainedModel, BertModel
 
 
-class BiEncoder(BertPreTrainedModel):
-    def __init__(self, config, *inputs, **kwargs):
-        super().__init__(config, *inputs, **kwargs)
-        self.bert = kwargs['bert']
-
-    def forward(self, context_input_ids, context_input_masks,
-                            responses_input_ids, responses_input_masks, labels=None):
-        ## only select the first response (whose lbl==1)
-        if labels is not None:
-            responses_input_ids = responses_input_ids[:, 0, :].unsqueeze(1)
-            responses_input_masks = responses_input_masks[:, 0, :].unsqueeze(1)
-
-        context_vec = self.bert(context_input_ids, context_input_masks)[0][:,0,:]  # [bs,dim]
-
-        batch_size, res_cnt, seq_length = responses_input_ids.shape
-        responses_input_ids = responses_input_ids.view(-1, seq_length)
-        responses_input_masks = responses_input_masks.view(-1, seq_length)
-
-        responses_vec = self.bert(responses_input_ids, responses_input_masks)[0][:,0,:]  # [bs,dim]
-        responses_vec = responses_vec.view(batch_size, res_cnt, -1)
-
-        if labels is not None:
-            responses_vec = responses_vec.squeeze(1)
-            dot_product = torch.matmul(context_vec, responses_vec.t())  # [bs, bs]
-            mask = torch.eye(context_input_ids.size(0)).to(context_input_ids.device)
-            loss = F.log_softmax(dot_product, dim=-1) * mask
-            loss = (-loss.sum(dim=1)).mean()
-            return loss
-        else:
-            context_vec = context_vec.unsqueeze(1)
-            dot_product = torch.matmul(context_vec, responses_vec.permute(0, 2, 1)).squeeze()
-            return dot_product
-
-
-class CrossEncoder(BertPreTrainedModel):
-    def __init__(self, config, *inputs, **kwargs):
-        super().__init__(config, *inputs, **kwargs)
-        self.bert = kwargs['bert']
-        self.linear = nn.Linear(config.hidden_size, 1)
-
-    def forward(self, text_input_ids, text_input_masks, text_input_segments, labels=None):
-        batch_size, neg, dim = text_input_ids.shape
-        text_input_ids = text_input_ids.reshape(-1, dim)
-        text_input_masks = text_input_masks.reshape(-1, dim)
-        text_input_segments = text_input_segments.reshape(-1, dim)
-        text_vec = self.bert(text_input_ids, text_input_masks, text_input_segments)[0][:,0,:]  # [bs,dim]
-        score = self.linear(text_vec)
-        score = score.view(-1, neg)
-        if labels is not None:
-            loss = -F.log_softmax(score, -1)[:,0].mean()
-            return loss
-        else:
-            return score
-
 
 class PolyEncoder(BertPreTrainedModel):
     def __init__(self, config, *inputs, **kwargs):
