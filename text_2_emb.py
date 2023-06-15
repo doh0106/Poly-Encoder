@@ -95,8 +95,8 @@ if __name__ == '__main__':
     with torch.no_grad():
         
         for ids, masks in tqdm(dataloader): 
-            ids = ids.unsqueeze(1)
-            masks = masks.unsqueeze(1)
+            ids = ids.unsqueeze(0)
+            masks = masks.unsqueeze(0)
             batch_size, res_cnt, seq_length = ids.shape
             ids = ids.view(-1, seq_length)
             masks = masks.view(-1, seq_length)
