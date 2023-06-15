@@ -1,7 +1,9 @@
 import torch
+from transform import SelectionSequentialTransform, SelectionJoinTransform
+
 class Call_Center(): 
-    def __init__(self, context_transform, model, cand_embs_df, device): 
-        self.context_transform = context_transform
+    def __init__(self, model, tokenizer, cand_embs_df, device): 
+        self.context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=128)
         self.model = model
         self.cand_embs_df = cand_embs_df 
         self.device = device
