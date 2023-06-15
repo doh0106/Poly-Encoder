@@ -4,7 +4,7 @@ import json
 import shutil
 import argparse
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import random
 import torch
 import torch.nn as nn
@@ -106,12 +106,14 @@ if __name__ == '__main__':
     parser.add_argument("--train_file", default='train.pickle', type=str)
     parser.add_argument("--valid_file", default='valid.pickle', type=str)
     parser.add_argument("--test_file", default='test.pickle', type=str)
+    
+    parser.add_argument("--neg_size", default=15, type=int)
 
     parser.add_argument("--use_pretrain", action="store_true")
     parser.add_argument("--architecture", required=True, type=str, help='[poly, bi, cross]')
 
     parser.add_argument("--max_contexts_length", default=128, type=int)
-    parser.add_argument("--max_response_length", default=32, type=int)
+    parser.add_argument("--max_response_length", default=128, type=int)
     parser.add_argument("--train_batch_size", default=32, type=int, help="Total batch size for training.")
     parser.add_argument("--eval_batch_size", default=32, type=int, help="Total batch size for eval.")
     parser.add_argument("--print_freq", default=100, type=int, help="Log frequency")
@@ -146,7 +148,19 @@ if __name__ == '__main__':
     print(args)
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
     set_seed(args)
-    wandb.login()
+
+    wandb.init(
+    # set the wandb project where this run will be logged
+    project="poly-encoder",
+    
+    # track hyperparameters and run metadata
+    config={
+    "learning_rate": args.learning_rate,
+    "architecture": "poly-encoder",
+    "dataset": "dasan-dataset",
+    "epochs": args.num_train_epochs,
+    }
+    )
 
     MODEL_CLASSES = {
         'bert': (BertConfig, BertTokenizerFast, BertModel),
@@ -170,9 +184,9 @@ if __name__ == '__main__':
 
     if not args.eval:
         train_dataset = SelectionDataset(os.path.join(args.train_dir, args.train_file),
-                        context_transform, response_transform, concat_transform,mode=args.architecture)
+                        context_transform, response_transform, concat_transform,mode=args.architecture, num=args.neg_size)
         val_dataset = SelectionDataset(os.path.join(args.train_dir, args.valid_file),
-                        context_transform, response_transform, concat_transform,mode=args.architecture)
+                        context_transform, response_transform, concat_transform,mode=args.architecture, num=args.neg_size)
         train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size, collate_fn=train_dataset.batchify_join_str, shuffle=True, num_workers=0)
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
     else: # test
@@ -265,7 +279,7 @@ if __name__ == '__main__':
     eval_freq = eval_freq//args.gradient_accumulation_steps
     print('Print freq:', print_freq, "Eval freq:", eval_freq)
 
-    for epoch in tqdm(range(epoch_start, int(args.num_train_epochs) + 1)):
+    for epoch in range(epoch_start, int(args.num_train_epochs) + 1):
         tr_loss = 0
         nb_tr_steps = 0
         with tqdm(total=len(train_dataloader)//args.gradient_accumulation_steps) as bar:
@@ -327,27 +341,27 @@ if __name__ == '__main__':
                             torch.save(model.state_dict(), state_save_path)
                 log_wf.flush()
                 
-        if tr_loss < best_train_loss: 
-            best_trsin_loss = tr_loss
-            print('[Saving at]', state_save_path_train)
-            log_wf.write('[Saving at] %s\n' % state_save_path_train)
-            torch.save(model.state_dict(), state_save_path_train)
-        # add a eval step after each epoch
-        val_result = eval_running_model(val_dataloader)
-        print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
-        log_wf.write('Global Step %d VAL res:\n' % global_step)
-        log_wf.write(str(val_result) + '\n')
+            if tr_loss < best_train_loss: 
+                best_trsin_loss = tr_loss
+                print('[Saving at]', state_save_path_train)
+                log_wf.write('[Saving at] %s\n' % state_save_path_train)
+                torch.save(model.state_dict(), state_save_path_train)
+            # add a eval step after each epoch
+            val_result = eval_running_model(val_dataloader)
+            print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
+            log_wf.write('Global Step %d VAL res:\n' % global_step)
+            log_wf.write(str(val_result) + '\n')
 
-        if val_result['eval_loss'] < best_eval_loss:
-            best_eval_loss = val_result['eval_loss']
-            val_result['best_eval_loss'] = best_eval_loss
-            # save model
-            print('[Saving at]', state_save_path)
-            log_wf.write('[Saving at] %s\n' % state_save_path)
-            torch.save(model.state_dict(), state_save_path)
-        wandb.log({'tr_loss' : tr_loss, 'val_loss' : val_result['eval_loss'],
-                'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
-                'MRR' : val_result['MRR']})
-        # print(global_step, tr_loss / nb_tr_steps)
-        torch.save(model.state_dict(), state_save_path_last)
-        # log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))
+            if val_result['eval_loss'] < best_eval_loss:
+                best_eval_loss = val_result['eval_loss']
+                val_result['best_eval_loss'] = best_eval_loss
+                # save model
+                print('[Saving at]', state_save_path)
+                log_wf.write('[Saving at] %s\n' % state_save_path)
+                torch.save(model.state_dict(), state_save_path)
+            wandb.log({'tr_loss' : val_result['train_loss'], 'val_loss' : val_result['eval_loss'],
+                    'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
+                    'MRR' : val_result['MRR']})
+            # print(global_step, tr_loss / nb_tr_steps)
+            torch.save(model.state_dict(), state_save_path_last)
+            # log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))

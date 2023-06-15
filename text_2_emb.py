@@ -31,6 +31,7 @@ class OneSentenceDataset(Dataset):
         long_tensors = [responses_token_ids_list, responses_input_masks_list]
         responses_token_ids_list, responses_input_masks_list = (torch.tensor(t, dtype=torch.long, device=device) for t in long_tensors)
         return responses_token_ids_list, responses_input_masks_list
+
 class SelectionSequentialTransform(object):
     def __init__(self, tokenizer, max_len):
         self.tokenizer = tokenizer

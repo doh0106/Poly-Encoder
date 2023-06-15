@@ -6,7 +6,7 @@ class SelectionSequentialTransform(object):
     def __call__(self, texts):
         input_ids_list, segment_ids_list, input_masks_list, contexts_masks_list = [], [], [], []
         for text in texts:
-            tokenized_dict = self.tokenizer.encode_plus(text, max_length=self.max_len, padding='max_length')
+            tokenized_dict = self.tokenizer.encode_plus(text, max_length=self.max_len, padding='max_length', truncation=True)
             input_ids, input_masks = tokenized_dict['input_ids'], tokenized_dict['attention_mask']
             assert len(input_ids) == self.max_len
             assert len(input_masks) == self.max_len
@@ -31,13 +31,17 @@ class SelectionJoinTransform(object):
         # another option is to use [SEP], but here we follow the discussion at:
         # https://github.com/facebookresearch/ParlAI/issues/2306#issuecomment-599180186
         context = '\n'.join(texts)
-        tokenized_dict = self.tokenizer.encode_plus(context)
+        tokenized_dict = self.tokenizer.encode_plus(context, max_length=self.max_len, padding='max_length', truncation=True)
         input_ids, input_masks = tokenized_dict['input_ids'], tokenized_dict['attention_mask']
-        input_ids = input_ids[-self.max_len:]
-        input_ids[0] = self.cls_id
-        input_masks = input_masks[-self.max_len:]
-        input_ids += [self.pad_id] * (self.max_len - len(input_ids))
-        input_masks += [0] * (self.max_len - len(input_masks))
+        
+        # input_ids = input_ids[:self.max_len]
+        # print('\n\n\n=====================\n')
+        # print(self.max_len, len(input_ids))
+        # print('\n======================\n\n\n\n')
+        # input_ids[0] = self.cls_id
+        # input_masks = input_masks[:self.max_len]
+        # input_ids += [self.pad_id] * (self.max_len - len(input_ids))
+        # input_masks += [0] * (self.max_len - len(input_masks))
         assert len(input_ids) == self.max_len
         assert len(input_masks) == self.max_len
 
