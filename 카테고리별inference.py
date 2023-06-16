@@ -60,8 +60,8 @@ class Category_Callcenter():
             return dot_product
 
         with torch.no_grad(): 
-            answers = self.emb_df
-            cand_embs = torch.stack(answers['response'].tolist(), dim=1).to(self.device)
+            answer_df = self.emb_df
+            cand_embs = torch.stack(answer_df['response'].tolist(), dim=1).to(self.device)
             embs = embs_gen(*context_input([query]))
             embs = embs.to(self.device)
             s = score(embs, cand_embs)
@@ -69,4 +69,4 @@ class Category_Callcenter():
             cosine_score = self.cosine_score(query, idx)
             if cosine_score < 0.93:
                 return '죄송합니다 시민님, 답을 찾기 어려운 질문입니다. 다시 질문해 주시겠습니까?'
-            return answers[idx]
+            return answer_df.iloc[idx]['text']
