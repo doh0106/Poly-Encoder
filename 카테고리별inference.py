@@ -3,7 +3,7 @@ from transform import SelectionSequentialTransform, SelectionJoinTransform
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np 
 
-class cat_cosine(): 
+class Category_Callcenter(): 
     def __init__(self, model, tokenizer, emb_df, device): 
         self.context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=128)
         self.response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=128)
