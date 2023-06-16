@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-import wandb
+# import wandb
 
 from transformers import RobertaTokenizerFast, RobertaModel, RobertaConfig
 from transformers import BertModel, BertConfig, BertTokenizer, BertTokenizerFast
@@ -149,18 +149,18 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
     set_seed(args)
 
-    wandb.init(
-    # set the wandb project where this run will be logged
-    project="poly-encoder",
+    # wandb.init(
+    # # set the wandb project where this run will be logged
+    # project="poly-encoder",
     
-    # track hyperparameters and run metadata
-    config={
-    "learning_rate": args.learning_rate,
-    "architecture": "poly-encoder",
-    "dataset": "dasan-dataset",
-    "epochs": args.num_train_epochs,
-    }
-    )
+    # # track hyperparameters and run metadata
+    # config={
+    # "learning_rate": args.learning_rate,
+    # "architecture": "poly-encoder",
+    # "dataset": "dasan-dataset",
+    # "epochs": args.num_train_epochs,
+    # }
+    # )
 
     MODEL_CLASSES = {
         'bert': (BertConfig, BertTokenizerFast, BertModel),
@@ -359,9 +359,9 @@ if __name__ == '__main__':
                 print('[Saving at]', state_save_path)
                 log_wf.write('[Saving at] %s\n' % state_save_path)
                 torch.save(model.state_dict(), state_save_path)
-            wandb.log({'tr_loss' : val_result['train_loss'], 'val_loss' : val_result['eval_loss'],
-                    'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
-                    'MRR' : val_result['MRR']})
+            # wandb.log({'tr_loss' : val_result['train_loss'], 'val_loss' : val_result['eval_loss'],
+            #         'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
+            #         'MRR' : val_result['MRR']})
             # print(global_step, tr_loss / nb_tr_steps)
             torch.save(model.state_dict(), state_save_path_last)
             # log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))
