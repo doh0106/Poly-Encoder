@@ -33,9 +33,9 @@ class Category_Callcenter():
             # 코사인 유사도 계산
             similarity = cosine_similarity(question_emb, compare_question_embs)[0]
 
-            print("코사인 유사도min:", np.min(similarity))
-            print("코사인 유사도mean:", np.mean(similarity))
-            print("코사인 유사도max:", np.max(similarity))
+            # print("코사인 유사도min:", np.min(similarity))
+            # print("코사인 유사도mean:", np.mean(similarity))
+            # print("코사인 유사도max:", np.max(similarity))
             return np.max(similarity)
 
     def inference(self, query): 
@@ -66,7 +66,7 @@ class Category_Callcenter():
             embs = embs.to(self.device)
             s = score(embs, cand_embs)
             idx = int(s.argmax(1)[0])
-            self.cosine_score(query, idx)
-            # if self.cosine_score(query, idx)<0.93:
-            #     return idx, '죄송합니다 시민님, 답을 찾기 어려운 질문입니다. 다시 질문해 주시겠습니까?'
-            return idx
+            cosine_score = self.cosine_score(query, idx)
+            if cosine_score < 0.93:
+                return '죄송합니다 시민님, 답을 찾기 어려운 질문입니다. 다시 질문해 주시겠습니까?'
+            return answers[idx]
