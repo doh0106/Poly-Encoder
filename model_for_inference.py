@@ -1,10 +1,10 @@
 from transformers import BertModel, BertConfig,  BertTokenizerFast
 from transform import SelectionJoinTransform
-from encoder import PolyEncoder
+from encoder import PolyEncoder, CrossEncoder
 import torch
 import os
 
-def Load_Model_Tokenizer(model_path):
+def Load_Model_Tokenizer(model_path, model_type='poly'):
 
     bert_config = BertConfig.from_json_file(os.path.join(model_path, 'config.json'))
     previous_model_file = os.path.join(model_path, 'pytorch_model.bin')
@@ -18,8 +18,10 @@ def Load_Model_Tokenizer(model_path):
 
     bert = BertModel(bert_config)
     bert.resize_token_embeddings(len(tokenizer))
-
-    model = PolyEncoder(bert_config, bert=bert, poly_m=16)
+    if model_type=='poly': 
+        model = PolyEncoder(bert_config, bert=bert, poly_m=16)
+    elif model_type=='cross':
+        model = CrossEncoder(bert_config, bert=bert, poly_m=16)
     model.load_state_dict(model_state_dict)
     model.eval()
 
