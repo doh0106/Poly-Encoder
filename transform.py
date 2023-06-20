@@ -63,7 +63,7 @@ class SelectionConcatTransform(object):
     def __call__(self, context, responses):
         # another option is to use [SEP], but here we follow the discussion at:
         # https://github.com/facebookresearch/ParlAI/issues/2306#issuecomment-599180186
-        context = ''.join(context)
+        context = '\n'.join(context)
         tokenized_dict = self.tokenizer.encode_plus(context)
         context_ids, context_masks, context_segment_ids = tokenized_dict['input_ids'], tokenized_dict['attention_mask'], tokenized_dict['token_type_ids']
         ret_input_ids = []
