@@ -29,25 +29,19 @@ class Callcenter():
             masks = masks.view(-1, seq_length)
 
             question_emb = self.poly_encoder.bert(ids, masks)[0][:, 0, :].to('cpu').detach().numpy()
-            # print(question_emb.shape)
             compare_question_embs = torch.stack(list(self.emb_df.iloc[idx][['q1', 'q2', 'q3', 'q4']].values), dim=1)
             compare_question_embs = compare_question_embs.to('cpu').detach().numpy()[0]
-            # print(compare_question_embs.shape)
             # 코사인 유사도 계산
             similarity = cosine_similarity(question_emb, compare_question_embs)[0]
-
-            # print("코사인 유사도min:", np.min(similarity))
-            # print("코사인 유사도mean:", np.mean(similarity))
-            # print("코사인 유사도max:", np.max(similarity))
             return np.max(similarity)
     def cross_score(self, query, indices): 
         with torch.no_grad():
             query = [query]
             responses = [self.emb_df['text'].iloc[idx] for idx in indices]
             ret_input_ids, ret_input_masks, ret_segment_ids = self.concat_transform(query, responses)
-            ret_input_ids = torch.tensor(ret_input_ids).unsqueeze(0)
-            ret_input_masks = torch.tensor(ret_input_masks).unsqueeze(0)
-            ret_segment_ids = torch.tensor(ret_segment_ids).unsqueeze(0)
+            ret_input_ids = torch.tensor(ret_input_ids).unsqueeze(0).to(self.device)
+            ret_input_masks = torch.tensor(ret_input_masks).unsqueeze(0).to(self.device)
+            ret_segment_ids = torch.tensor(ret_segment_ids).unsqueeze(0).to(self.device)
             c_score = self.cross_encoder(ret_input_ids, ret_input_masks, ret_segment_ids)
             return c_score.to('cpu').detach().numpy()
 
@@ -77,6 +71,6 @@ class Callcenter():
             embs = embs_gen(*context_input([query]))
             embs = embs.to(self.device)
             s = score(embs, cand_embs)
-            top_indices = torch.topk(s, k=self.topk)[1].to('cpu').detach().numpy()[0]
-            top_cosine_score = self.cross_score(query, top_indices)
-            return top_cosine_score[0], top_indices
+            top_indices = torch.topk(s, k=self.topk)[1].detach()[0].cpu().numpy()
+            top_cross_score = self.cross_score(query, top_indices)
+            return top_cross_score[0], top_indices
