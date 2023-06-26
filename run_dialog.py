@@ -339,7 +339,8 @@ if __name__ == '__main__':
                 wandb.log({'tr_loss' : tr_loss / nb_tr_steps})
 
                 log_wf.flush()
-            
+            torch.save(model.state_dict(), state_save_path_last)
+            print('[Saving at]', state_save_path_last)
             # add a eval step after each epoch
             val_result = eval_running_model(val_dataloader)
             print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
