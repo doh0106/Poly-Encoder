@@ -324,16 +324,16 @@ if __name__ == '__main__':
                         bar.update(min(print_freq, nb_tr_steps))
                         time.sleep(0.02)
 
-                    if global_step and global_step % eval_freq == 0:
-                        val_result = eval_running_model(val_dataloader)
+                if global_step and global_step % eval_freq == 0:
+                    val_result = eval_running_model(val_dataloader)
 
-                        if val_result['eval_loss'] < best_eval_loss:
-                            best_eval_loss = val_result['eval_loss']
-                            val_result['best_eval_loss'] = best_eval_loss
-                            # save model
-                            print('[Saving at]', state_save_path)
-                            log_wf.write('[Saving at] %s\n' % state_save_path)
-                            torch.save(model.state_dict(), state_save_path)
+                    if val_result['eval_loss'] < best_eval_loss:
+                        best_eval_loss = val_result['eval_loss']
+                        val_result['best_eval_loss'] = best_eval_loss
+                        # save model
+                        print('[Saving at]', state_save_path)
+                        log_wf.write('[Saving at] %s\n' % state_save_path)
+                        torch.save(model.state_dict(), state_save_path)
                 wandb.log({'tr_loss' : tr_loss / nb_tr_steps})
                 log_wf.flush()
             
