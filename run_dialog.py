@@ -99,6 +99,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     ## Required parameters
     parser.add_argument("--bert_model", default='ckpt/pretrained/bert-small-uncased', type=str)
+    parser.add_argument("--hugging_face_token", default='your_token', type=str)
     parser.add_argument("--eval", action="store_true")
     parser.add_argument("--model_type", default='bert', type=str)
     parser.add_argument("--output_dir", required=True, type=str)
@@ -344,6 +345,14 @@ if __name__ == '__main__':
             # add a eval step after each epoch
             val_result = eval_running_model(val_dataloader)
             print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
+            if epoch%10==0: 
+                model.save_pretrained(f"water_dialog_model_{epoch}")
+                tokenizer.save_pretrained(f"water_dialog_tokenizer_{epoch}")
+
+                model.push_to_hub(f"water_dialog_model_{epoch}", use_auth_token=args.hugging_face_token)
+                tokenizer.push_to_hub(f"water_dialog_tokenizer_{epoch}", use_auth_token=args.hugging_face_token)
+
+
 
 
 
