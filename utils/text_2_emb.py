@@ -1,5 +1,5 @@
 import sys 
-sys.path.append("../")
+sys.path.append("./")
 
 from transformers import BertModel, BertConfig,  BertTokenizerFast
 from transformers import XLMRobertaTokenizerFast, RobertaModel, RobertaConfig

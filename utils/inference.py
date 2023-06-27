@@ -1,5 +1,5 @@
 import sys 
-sys.path.append("../")
+sys.path.append("./")
 
 import torch
 from src.transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
