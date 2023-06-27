@@ -12,113 +12,97 @@
 
 ## Requirements
 
-- Please see requirements.txt.
+- requirements.txt 참조
 
-## Bert Model Setup
+## 학습 위한 Bert Model Setup
 
-1. Download [BERT model](https://storage.googleapis.com/bert_models/2020_02_20/all_bert_models.zip) from Google.
+**BERT 관련 다른 원하는 모델있으면 사용가능**
+1. [BERT model] 허깅페이스 'kykim/bertshared-kor-base' (https://huggingface.co/kykim/bertshared-kor-base/tree/main)에서 [pytorch_model.bin, config.json, tokenizer_config.json, vocab.txt] 다운로드 후 models/bert에 저장
 
-2. Pick the model you like (I am using uncased_L-4_H-512_A-8.zip) and move it into bert_model/ then unzip it.
+2. [RoBERTa model] 허깅페이스 'klue/roberta-large' (https://huggingface.co/klue/roberta-large/tree/main)에서 [pytorch_model.bin, config.json, special_tokens_map.json, tokenizer.json, tokenizer_config.json, vocab.txt] 다운로드 후 models/roberta에 저장
 
-3. cd bert_model/ then bash run.sh
+## 원본 데이터셋
 
-## Ubuntu Data
+1. AIhub 민원(콜센터) 질의-응답 데이터(https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=realm&dataSetSn=98) 중 라벨링 데이터의 다산콜센터 데이터 사용 
 
-1. Download and unzip the [ubuntu data](https://www.dropbox.com/s/2fdn26rj6h9bpvl/ubuntudata.zip?dl=0).
+## 우리 데이터셋
 
-2. Rename valid.txt to dev.txt for consistency.
+1. AIhub 상담 데이터 중 일반행정, 상하수도, 코로나 관련 주제 데이터 사용
 
-## DSTC 7 Data
+2. 각 주제별로 상담에 유용하다고 생각되는 [질문 -답]쌍 250개 이상 추출, 생성
 
-1. Download the data from the official competition [site](https://ibm.github.io/dstc-noesis/public/datasets.html), specifically, download train (ubuntu_train_subtask_1.json), valid (ubuntu_dev_subtask_1.json), test (ubuntu_responses_subtask_1.tsv, ubuntu_test_subtask_1.json) split of subtask 1 and put them in the dstc7/ folder.
+3. 데이터 학습을 위한 데이터 형식 예시
 
-2. cd dstc7/ then bash parse.sh
+|       **index**       |   **q1**  |   **q2**  |  **q3**   |  **q4**  |  **response**   |
+| :---------------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+|   0    |   코로나 자가격리시 일을 못하는데 어떻게 하나요?    |   자가격리시 일을 못하는데 어떻게 하나요?    |   자가격리로 일을 못하는데 방법이 있나요 ?    |   코로나 자가격리때문에 일을 못하는데 어떻게 하나요?     |   정부에서 별도 지원금을 지급하고 있습니다    |
+| 1  |  코로나 자가격리 지원금을 위한 필요서류가 있나요?    |   코로나 자가격리 지원금을 위해 준비해야할 필요서류가 있나요?    |   코로나 자가격리 지원금 신청할때 준비할 필요서류가 있나요?    |   코로나 자가격리 지원금 신청할때 서류가 있나요?     |   신청서와 신분증 사분, 자가격리이행 확약서 등입니다.    |
+- 챗봇에서 사람들마다 질문하는 방식이 다를 수 있음
+   - 하나의 답변에 대해 의미는 같으나 다양한 문장 구조를 가진 질문을 총 4개의 질문을 준비
+- pickle 확장자 파일로 준비
 
-## DSTC 7 Augmented Data (from ParlAI)
-
-0. This dataset setting does not work for cross encoder. For details, please refer to this [issue](https://github.com/chijames/Poly-Encoder/issues/7).
-
-1. Download the data from ParlAI [website](http://parl.ai/downloads/dstc7/dstc7_v2.tgz) and keep only ubuntu_train_subtask_1_augmented.json.
-
-2. Move ubuntu_train_subtask_1_augmented.json into dstc7_aug/ then python3 parse.py.
-
-3. Copy the dev.txt and test.txt file from dstc7/ into dstc7_aug/ since only training file is augmented.
-
-4. You can refer to the original [post](https://github.com/facebookresearch/ParlAI/issues/2306#issuecomment-571284065) discussing the construction of this augmented data.
-
-## Run Experiments (on dstc7)
-
-1. Train a **Bi-Encoder**:
-
+## 학습 코드 예시
+1. Train **Poly-Encoder**
    ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture bi
+   python run.py \
+   --model_type bert \
+   --bert_model models/bert/ \
+   --output_dir result/train1 \
+   --train_dir datasets/ \
+   --train_file dasan_train_data.pickle \
+   --valid_file dasan_train_data.pickle \
+   --use_pretrain \
+   --architecture poly \
+   --poly_m 16 \
+   --train_batch_size 2 \
+   --eval_batch_size 2 \
+   --max_contexts_length 256 \
+   --max_response_length 256 \
+   --num_train_epochs 1000
    ```
-
-2. Train a **Poly-Encoder** with 16 codes:
-
+2. Train **Cross-Encoder**
    ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture poly --poly_m 16
+   python run.py \
+   --model_type bert \
+   --bert_model models/bert/ \
+   --output_dir result/train2 \
+   --train_dir datasets/ \
+   --train_file dasan_train_data.pickle \
+   --valid_file dasan_train_data.pickle \
+   --use_pretrain \
+   --architecture cross \
+   --train_batch_size 2 \
+   --eval_batch_size 2 \
+   --max_contexts_length 256 \
+   --max_response_length 256 \
+   --num_train_epochs 1000
    ```
-
-3. Train a **Cross-Encoder**:
-
-   ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture cross
-   ```
-
-4. Simply change the name of directories to ubuntu and run experiments on the ubuntu dataset.
 
 ## Inference
 
-1. Test on **Bi_Encoder**:
-
+1. 답변 후보 text들의 embedding을 미리 계산하기 위하여 text2emb.py 실행
    ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture bi --eval
+   python text_2_emb.py \
+   --model_type bert \
+   --bert_model models/bert \
+   --text_path /path/to/카테고리별답변들.txt \
+   --output_dir /path/to/카테고리별embedding.pickle \
+   --gpu 1
    ```
-
-2. Test on **Poly_Encoder** with 16 codes:
-
-   ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture poly --poly_m 16 --eval
-   ```
-
-3. Test on **Cross_Encoder**:
-
-   ```shell
-   python3 run.py --bert_model bert_model/ --output_dir output_dstc7/ --train_dir dstc7/ --use_pretrain --architecture cross --eval
-   ```
-
-## Results
-
-- All the experiments are done on a single GTX 1080 GPU with 8G memory and i7-6700K CPU @ 4.00GHz.
-
-- Default parameters in run.py are used, please refer to run.py for details.
-
-- The results are calculated on sampled portion (1000 instances) of dev set.
-
-- da = data augmentation, we only report one result with poly vectors=64 and bert-base (uncased_L-12_H-768_A-12) with data augmentation (dstc7_aug). This result is really close to numbers reported in the original paper.
-
-Ubuntu:
-|       Model       |   **R@1**  |   **R@2**  |  **R@5**   |  **R@10**  |  **MRR**   |
-| :---------------: | :--------: | :--------: | :--------: | :--------: | :--------: |
-|    Bi-Encoder     |   0.760    |   0.855    |   0.971    |   1.00     |   0.844    |
-| Poly-Encoder  16  |   0.766    |   0.868    |   0.974    |   1.00     |   0.851    |
-| Poly-Encoder  64  |   0.767    |   0.880    |   0.979    |   1.00     |   0.854    |
-| Poly-Encoder  360 |   0.754    |   0.858    |   0.970    |   1.00     |   0.842    |
-
-DSTC 7:
-|       Model       |   **R@1**  |   **R@2**  |  **R@5**   |  **R@10**  |  **MRR**   |
-| :---------------: | :--------: | :--------: | :--------: | :--------: | :--------: |
-|    Bi-Encoder     |   0.437    |   0.524    |   0.644    |   0.753    |   0.538    |
-| Poly-Encoder  16  |   0.447    |   0.534    |   0.668    |   0.760    |   0.550    |
-| Poly-Encoder  64  |   0.438    |   0.540    |   0.668    |   0.755    |   0.546    |
-| Poly-Encoder  360 |   0.453    |   0.553    |   0.665    |   0.751    |   0.545    |
-| Cross-Encoder     |   0.502    |   0.595    |   0.712    |   0.790    |   0.599    |
-| da + bert base    |   0.561    |   0.659    |   0.765    |   0.858    |   0.659    |
+   - 카테고리별답변들.txt 파일은 한 줄마다 학습시킨 답변들 하나씩 작성
+   - output인 카테고리별embedding.pickle의 예시는 우리 datasets/{category}_with_text.pickle 를 통해서 확인 가능
+2. 이후 inference.py를 통하여 모델 생성하여 챗봇 모델 생성하여 [질문->답변] 실험 가능
+   - 자세한 실행 코드는 how_2_inference.ipynb 파일 참조
 
 
 
-## Star History
+## 학습환경
 
-[![Star History Chart](https://api.star-history.com/svg?repos=chijames/Poly-Encoder&type=Date)](https://star-history.com/#chijames/Poly-Encoder&Date)
+
+|       모델       |       환경       |   **CPU**  |   **RAM**  |  **GPU**   |  **OS**  |  **Training Time**   |
+| :---------------: | :---------------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+|    Poly Encoder    |    AWS    |   AMD-EPYC   |   16G    |   A10(24G)    |   Ubuntu     |   24hr    |
+|    Cross Encoder    |    Colab pro+    |   Intel-xeon   |   80G    |   A100(40G)    |   Ubuntu     |   21hr    |
+
+
 
