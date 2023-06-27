@@ -67,7 +67,7 @@ class Callcenter():
             return dot_product
 
         with torch.no_grad(): 
-            cand_embs = torch.stack(self.emb_df['response'].tolist(), dim=1).to(self.device)
+            cand_embs = torch.stack(self.emb_df['embedding'].tolist(), dim=1).to(self.device)
             embs = embs_gen(*context_input([query]))
             embs = embs.to(self.device)
             s = score(embs, cand_embs)
