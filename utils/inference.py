@@ -1,3 +1,6 @@
+import sys 
+sys.path.append("../")
+
 import torch
 from src.transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
 from sklearn.metrics.pairwise import cosine_similarity

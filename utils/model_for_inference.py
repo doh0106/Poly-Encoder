@@ -1,3 +1,6 @@
+import sys 
+sys.path.append("../")
+
 from transformers import BertModel, BertConfig,  BertTokenizerFast
 from src.transform import SelectionJoinTransform
 from src.encoder import PolyEncoder, CrossEncoder

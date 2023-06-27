@@ -6,14 +6,6 @@ import random
 import pickle
 import pandas as pd
 
-import torch
-from torch.utils.data import Dataset
-from tqdm import tqdm
-import os
-import random
-import pickle
-import pandas as pd
-
 def make_data_set(file_path, num):
     with open(file_path, 'rb') as fr:
         df = pickle.load(fr)
