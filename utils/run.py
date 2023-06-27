@@ -18,9 +18,9 @@ from transformers import RobertaTokenizerFast, RobertaModel, RobertaConfig
 from transformers import BertModel, BertConfig, BertTokenizer, BertTokenizerFast
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
-from dataset import SelectionDataset
-from transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
-from encoder import PolyEncoder, BiEncoder, CrossEncoder
+from src.dataset import SelectionDataset
+from src.transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
+from src.encoder import PolyEncoder, BiEncoder, CrossEncoder
 
 from sklearn.metrics import label_ranking_average_precision_score
 

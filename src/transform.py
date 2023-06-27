@@ -15,8 +15,6 @@ class SelectionSequentialTransform(object):
 
         return input_ids_list, input_masks_list
 
-
-
 class SelectionJoinTransform(object):
     def __init__(self, tokenizer, max_len):
         self.tokenizer = tokenizer

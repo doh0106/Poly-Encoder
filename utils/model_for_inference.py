@@ -1,6 +1,6 @@
 from transformers import BertModel, BertConfig,  BertTokenizerFast
-from transform import SelectionJoinTransform
-from encoder import PolyEncoder, CrossEncoder
+from src.transform import SelectionJoinTransform
+from src.encoder import PolyEncoder, CrossEncoder
 import torch
 import os
 

@@ -1,8 +1,6 @@
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
-import os
-import random
 import pickle
 import pandas as pd
 

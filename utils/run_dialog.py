@@ -12,15 +12,15 @@ import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-import wandb
+# import wandb
 
 from transformers import RobertaTokenizerFast, RobertaModel, RobertaConfig
 from transformers import BertModel, BertConfig, BertTokenizer, BertTokenizerFast
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
-from dataset_dialog import SelectionDataset
-from transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
-from encoder import PolyEncoder, BiEncoder, CrossEncoder
+from src.dataset_dialog import SelectionDataset
+from src.transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
+from src.encoder import PolyEncoder, BiEncoder, CrossEncoder
 
 from sklearn.metrics import label_ranking_average_precision_score
 
@@ -150,18 +150,18 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
     set_seed(args)
 
-    wandb.init(
-    # set the wandb project where this run will be logged
-    project="dialog_chatbot",
+    # wandb.init(
+    # # set the wandb project where this run will be logged
+    # project="dialog_chatbot",
     
-    # track hyperparameters and run metadata
-    config={
-    "learning_rate": args.learning_rate,
-    "architecture": "poly-encoder",
-    "dataset": "water-dataset",
-    "epochs": args.num_train_epochs,
-    }
-    )
+    # # track hyperparameters and run metadata
+    # config={
+    # "learning_rate": args.learning_rate,
+    # "architecture": "poly-encoder",
+    # "dataset": "water-dataset",
+    # "epochs": args.num_train_epochs,
+    # }
+    # )
 
     MODEL_CLASSES = {
         'bert': (BertConfig, BertTokenizerFast, BertModel),
@@ -335,9 +335,9 @@ if __name__ == '__main__':
                         print('[Saving at]', state_save_path)
                         log_wf.write('[Saving at] %s\n' % state_save_path)
                         torch.save(model.state_dict(), state_save_path)
-                    wandb.log({'val_loss' : val_result['eval_loss'], 'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
-                        'MRR' : val_result['MRR']})
-                wandb.log({'tr_loss' : tr_loss / nb_tr_steps})
+                #     wandb.log({'val_loss' : val_result['eval_loss'], 'R2' : val_result['R2'], 'R5' : val_result['R5'], 'R10' : val_result['R10'],
+                #         'MRR' : val_result['MRR']})
+                # wandb.log({'tr_loss' : tr_loss / nb_tr_steps})
 
                 log_wf.flush()
             torch.save(model.state_dict(), state_save_path_last)
@@ -345,12 +345,12 @@ if __name__ == '__main__':
             # add a eval step after each epoch
             val_result = eval_running_model(val_dataloader)
             print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
-            if epoch%10==0: 
-                model.save_pretrained(f"water_dialog_model_{epoch}")
-                tokenizer.save_pretrained(f"water_dialog_tokenizer_{epoch}")
+            # if epoch%10==0: 
+            #     model.save_pretrained(f"water_dialog_model_{epoch}")
+            #     tokenizer.save_pretrained(f"water_dialog_tokenizer_{epoch}")
 
-                model.push_to_hub(f"water_dialog_model_{epoch}", use_auth_token=args.hugging_face_token)
-                tokenizer.push_to_hub(f"water_dialog_tokenizer_{epoch}", use_auth_token=args.hugging_face_token)
+            #     model.push_to_hub(f"water_dialog_model_{epoch}", use_auth_token=args.hugging_face_token)
+            #     tokenizer.push_to_hub(f"water_dialog_tokenizer_{epoch}", use_auth_token=args.hugging_face_token)
 
 
 

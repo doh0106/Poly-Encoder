@@ -1,16 +1,14 @@
 from transformers import BertModel, BertConfig,  BertTokenizerFast
 from transformers import XLMRobertaTokenizerFast, RobertaModel, RobertaConfig
 
-from encoder import PolyEncoder 
-from tqdm import tqdm
+from src.encoder import PolyEncoder 
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 import argparse
 import pandas as pd 
 import os 
 import pickle
-import glob
-
 from tqdm import tqdm
 
 class OneSentenceDataset(Dataset):

@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertPreTrainedModel, BertModel
 
-
-
 class PolyEncoder(BertPreTrainedModel):
     def __init__(self, config, *inputs, **kwargs):
         super().__init__(config, *inputs, **kwargs)
