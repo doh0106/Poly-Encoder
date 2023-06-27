@@ -1,19 +1,26 @@
 
 # 프로젝트 설명
 ---
-## 사용 모델 및 모델 선정 이유 
-### Poly Encoder
- 
-- 생성형 챗봇인 Chat GPT는 Hallucination현상 등으로 인해 정확하지 않은 답변을 도출하는 경우 있음
-- 정확한 답변만을 해야하는 상담 챗봇 특성으로 인해 Retrieval System Chatbot을 선정
-- 
-
-
 ## 프로젝트 구성도
 
 ![Alt text](image-1.png)
 - input으로 질문이 들어오면, 1차적으로 답변 DB에서 Poly Encoder로 k개의 답변 후보 선정
 - 2차로 Cross Encoder를 통해 최종 답변 선정해 output
+
+## Retrieval-Based
+- 생성형 챗봇인 Chat GPT는 Hallucination현상 등으로 인해 정확하지 않은 답변을 도출하는 경우 있음
+- 정확한 답변만을 해야하는 상담 챗봇 특성으로 인해 Retrieval System Chatbot을 선정
+- 또한 생성형에 비해 답변 속도가 비교적 빠름
+
+## Poly Encoder
+ ![Alt text](image-2.png)
+- 기존 Bi Encoder
+## Cross Encoder
+![Alt text](image-3.png)
+## Problem
+
+## Solving
+
 ---
 # 학습 부분
 
