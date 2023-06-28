@@ -1,6 +1,6 @@
 
 # 프로젝트 설명
----
+
 ## 프로젝트 구성도
 
 ![Alt text](png/image-1.png)
@@ -122,7 +122,7 @@
 |    Cross Encoder    |    Colab pro+    |   Intel-xeon   |   80G    |   A100(40G)    |   Ubuntu     |   21hr    |
 
 
-
+---
 # Bi-Encoder, Poly-Encoder, and Cross-Encoder for Response Selection Tasks
 
 - This repository is an unofficial re-implementation of [Poly-encoders: Transformer Architectures and Pre-training Strategies for Fast and Accurate Multi-sentence Scoring](https://arxiv.org/abs/1905.01969v4).
