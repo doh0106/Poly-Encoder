@@ -3,7 +3,7 @@
 ---
 ## 프로젝트 구성도
 
-![Alt text](image-1.png)
+![Alt text](png/image-1.png)
 - input으로 질문이 들어오면, 1차적으로 답변 DB에서 Poly Encoder로 k개의 답변 후보 선정
 - 2차로 Cross Encoder를 통해 최종 답변 선정해 output
 
@@ -13,10 +13,10 @@
 - 또한 생성형에 비해 답변 속도가 비교적 빠름
 
 ## Poly Encoder
- ![Alt text](image-2.png)
+ ![Alt text](png/image-2.png)
 - 기존 Bi Encoder
 ## Cross Encoder
-![Alt text](image-3.png)
+![Alt text](png/image-3.png)
 ## Problem
 
 ## Solving
