@@ -1,4 +1,9 @@
+# 목차
+### Contents Table
+- [프로젝트 설명](#프로젝트-설명)
+   - [프로젝트 구성도](##프로젝트-구성도)
 
+- [학습 부분](#학습-부분)
 # 프로젝트 설명
 
 ## 프로젝트 구성도
@@ -120,17 +125,3 @@
 | :---------------: | :---------------: | :--------: | :--------: | :--------: | :--------: | :--------: |
 |    Poly Encoder    |    AWS    |   AMD-EPYC   |   16G    |   A10(24G)    |   Ubuntu     |   24hr    |
 |    Cross Encoder    |    Colab pro+    |   Intel-xeon   |   80G    |   A100(40G)    |   Ubuntu     |   21hr    |
-
-
----
-# Bi-Encoder, Poly-Encoder, and Cross-Encoder for Response Selection Tasks
-
-- This repository is an unofficial re-implementation of [Poly-encoders: Transformer Architectures and Pre-training Strategies for Fast and Accurate Multi-sentence Scoring](https://arxiv.org/abs/1905.01969v4).
-
-- Special thanks to sfzhou5678! Some of the data preprocessing (dataset.py) and training loop code is adapted from his [github repo](https://github.com/sfzhou5678/PolyEncoder). However, the model architecture and data representation in that repository do not follow the paper exactly, thus leading to worse performance. I re-implement the model for Bi-Encoder and Poly-Encoder in encoder.py. In addition, the model and data processing pipeline of cross encoder are also implemented.
-
-- Most of the training code in run.py is adpated from [examples](https://github.com/huggingface/transformers/blob/5bfcd0485ece086ebcbed2d008813037968a9e58/examples/run_glue.py?fbclid=IwAR3BlKIJYak659a6X12gsYOMs1JJPtnsdFUmn93CovwTJ5VXQZX1TK78yGo#L102) in the [huggingface](https://github.com/huggingface/transformers) repository.
-
-- The most important architectural difference between this implementation and the original paper is that only one bert encoder is used (instead of two separate ones). Please refer to this [issue](https://github.com/chijames/Poly-Encoder/issues/4#issue-728612873) for details. However, this should not affect the performance much.
-
-- This repository does not implement all details as in the original paper, for example, learning rate decay by 0.4 when plateau. Also due to limited computing resources, I cannot use the exact parameter settings such as batch size or context length as in the original paper. In addition, a much smaller bert model is used. Feel free to tune them or use larger models if you have more computing resources.
