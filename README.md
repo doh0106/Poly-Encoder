@@ -12,7 +12,7 @@
 ### 챗봇 구성도
 ![Alt text](png/image-1.png)
 - input으로 질문이 들어오면, 1차적으로 답변 DB에서 Poly Encoder로 k개의 답변 후보 선정
-- 2차로 Cross Encoder를 통해 최종 답변 선정해 output
+- 2차로 Cross Encoder를 통해 최종 답변 선정
 
 <br>
 
