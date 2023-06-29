@@ -21,7 +21,7 @@ from transformers import RobertaTokenizerFast, RobertaModel, RobertaConfig
 from transformers import BertModel, BertConfig, BertTokenizer, BertTokenizerFast
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 
-from src.dataset_dialog import SelectionDataset
+from src.dataset import SelectionDataset
 from src.transform import SelectionSequentialTransform, SelectionJoinTransform, SelectionConcatTransform
 from src.encoder import PolyEncoder, BiEncoder, CrossEncoder
 
