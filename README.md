@@ -39,7 +39,8 @@
 
 <br>
 
-####:memo: [참조 논문](https://arxiv.org/abs/1905.01969) 및 [논문 리뷰](https://www.notion.so/Poly-encoders-architectures-and-pre-training-strategies-for-fast-and-accurate-multi-sentence-scorin-ba51708779cf492695c307512b7a4a9c?pvs=4)
+:memo: [참조 논문](https://arxiv.org/abs/1905.01969) 및 [논문 리뷰](https://www.notion.so/Poly-encoders-architectures-and-pre-training-strategies-for-fast-and-accurate-multi-sentence-scorin-ba51708779cf492695c307512b7a4a9c?pvs=4)
+
 모델 관련 더 자세한 내용은 위 링크 참조
 
 <br>
